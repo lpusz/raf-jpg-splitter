@@ -1,0 +1,36 @@
+#!/bin/zsh
+# Moves *.jpg and *.raf files from a folder into JPG/ and RAF/ subfolders.
+
+setopt null_glob nocase_glob
+
+if [[ $# -ne 1 ]]; then
+  echo "Usage: raf-jpg-splitter path/to/folder" >&2
+  exit 1
+fi
+
+dir="${1%/}"
+if [[ ! -d "$dir" ]]; then
+  echo "Error: '$1' is not a directory" >&2
+  exit 1
+fi
+
+moved_jpg=0 moved_raf=0 skipped=0
+
+move_group() {
+  local ext=$1 target=$2 f dest
+  for f in "$dir"/*.$ext(.); do
+    dest="$dir/$target/${f:t}"
+    if [[ -e "$dest" ]]; then
+      echo "Skipping ${f:t}: already exists in $target/" >&2
+      (( skipped++ ))
+      continue
+    fi
+    mkdir -p "$dir/$target" && mv -n -- "$f" "$dest" || { (( skipped++ )); continue; }
+    if [[ $target == JPG ]]; then (( moved_jpg++ )); else (( moved_raf++ )); fi
+  done
+}
+
+move_group jpg JPG
+move_group raf RAF
+
+echo "Moved $moved_jpg to JPG, $moved_raf to RAF, skipped $skipped."
